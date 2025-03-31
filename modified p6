@@ -1,0 +1,55 @@
+//server
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <string.h>
+int main() {
+    int s;
+    struct sockaddr_in a, ca;
+    char b[512];
+    socklen_t l = sizeof(ca);
+    
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    a.sin_family = AF_INET;
+    a.sin_addr.s_addr = INADDR_ANY;
+    a.sin_port = htons(8888);
+    
+    bind(s, (struct sockaddr*)&a, sizeof(a));
+    printf("Server started. Waiting for client connection...\n");
+    
+    recvfrom(s, b, 512, 0, (struct sockaddr*)&ca, &l);
+    printf("Client connected. You can now type messages.\n");
+    
+    while(1) {
+        printf("Type message to send: ");
+        fgets(b, 512, stdin);
+        sendto(s, b, strlen(b), 0, (struct sockaddr*)&ca, l);
+        printf("Message sent successfully.\n");
+    }
+    return 0;
+}
+
+//client
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <string.h>
+int main() {
+    int s;
+    struct sockaddr_in a;
+    char b[512];
+    socklen_t l = sizeof(a);
+    
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    a.sin_family = AF_INET;
+    a.sin_port = htons(8888);
+    inet_pton(AF_INET, "127.0.0.1", &a.sin_addr);
+    
+    sendto(s, "hi", 2, 0, (struct sockaddr*)&a, l);
+    printf("Client started. Connected to server. Waiting for messages...\n");
+    
+    while(1) {
+        int n = recvfrom(s, b, 512, 0, 0, 0);
+        b[n] = 0;
+        printf("Received message: %s", b);
+    }
+    return 0;
+}
