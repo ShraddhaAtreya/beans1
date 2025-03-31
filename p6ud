@@ -1,0 +1,78 @@
+//server
+#include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+int main() {
+    int sockfd;
+    struct sockaddr_in servaddr, cliaddr;
+    char buf[1024];
+    socklen_t len = sizeof(cliaddr);
+    
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(8888);
+    
+    bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+    printf("Server started. Waiting for client...\n");
+  
+    recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr*)&cliaddr, &len);
+    printf("Client connected from %s:%d\n", 
+           inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+    
+    printf("Type messages to send:\n");
+    
+    while(1) {
+        memset(buf, 0, sizeof(buf));
+        fgets(buf, sizeof(buf), stdin);
+        
+        // Send to the last client that connected
+        sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&cliaddr, len);
+        printf("Message sent\n");
+    }
+    
+    close(sockfd);
+    return 0;
+}
+
+//client
+#include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+int main() {
+    int sockfd;
+    struct sockaddr_in servaddr;
+    char buf[1024];
+    socklen_t len = sizeof(servaddr);
+    
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(8888);
+    inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
+    
+    printf("Client started. Connecting to server...\n");
+    sendto(sockfd, "Hello", 5, 0, (struct sockaddr*)&servaddr, len);
+    printf("Connected to server. Waiting for messages...\n");
+    
+    while(1) {
+        memset(buf, 0, sizeof(buf));
+        int n = recvfrom(sockfd, buf, sizeof(buf), 0, NULL, NULL);
+        
+        if (n > 0) {
+            buf[n] = '\0';
+            printf("Server: %s", buf);
+            fflush(stdout);
+        }
+    }
+    
+    close(sockfd);
+    return 0;
+}
