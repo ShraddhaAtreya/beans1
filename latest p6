@@ -1,0 +1,43 @@
+//server
+#include <stdio.h>
+#include <arpa/inet.h>
+#include<string.h>
+int main() {
+    int s = socket(AF_INET, SOCK_DGRAM, 0);
+    struct sockaddr_in a = {.sin_family=AF_INET, .sin_addr.s_addr=INADDR_ANY, .sin_port=htons(8888)};
+    struct sockaddr_in ca;
+    char b[512];
+    socklen_t l = sizeof(ca);
+    
+    bind(s, (struct sockaddr*)&a, sizeof(a));
+    printf("Server ready\n");
+    
+    recvfrom(s, b, 512, 0, (struct sockaddr*)&ca, &l);
+    printf("Client connected\n");
+    
+    while(1) {
+        printf("Type: ");
+        fgets(b, 512, stdin);
+        sendto(s, b, strlen(b), 0, (struct sockaddr*)&ca, l);
+    }
+}
+
+//client
+#include <stdio.h>
+#include <arpa/inet.h>
+#include<string.h>
+int main() {
+    int s = socket(AF_INET, SOCK_DGRAM, 0);
+    struct sockaddr_in a = {.sin_family=AF_INET, .sin_port=htons(8888)};
+    char b[512];
+    
+    inet_pton(AF_INET, "127.0.0.1", &a.sin_addr);
+    sendto(s, "hi", 2, 0, (struct sockaddr*)&a, sizeof(a));
+    printf("Client ready\n");
+    
+    while(1) {
+        int n = recvfrom(s, b, 512, 0, 0, 0);
+        b[n] = 0;
+        printf("Recv: %s", b);
+    }
+}
